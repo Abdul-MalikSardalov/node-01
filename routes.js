@@ -1,4 +1,3 @@
-import { log } from 'console';
 import fs from 'fs';
 import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -6,29 +5,39 @@ import { fileURLToPath } from 'url';
 // get the current module's directory path
 const _filename = fileURLToPath(import.meta.url);
 const PATH = dirname(_filename);
-
 const fileFile = path.join(PATH, 'message.txt');
+
+const sendResponse = (res, headerType, headerValue, text, statusCode = 200) => {
+    res.setHeader(headerType, headerValue);
+    res.statusCode = statusCode;
+    if (text) {
+        res.write(text);
+    }
+    return res.end();
+};
 
 const requestHandler = (req, res) => {
     const { url, method } = req;
     if (url === '/') {
-        res.setHeader('Content-Type', 'text/html');
-        res.write(`
-    <body>
-         <form action="/message" method="POST">
-    <input name="name" placeholder="Write something">
-    <button type="submit">Submit</button>
-        </form>
-    </body>`);
-        return res.end();
+        sendResponse(
+            res,
+            'Content-Type',
+            'text/html',
+            `
+        <body>
+             <form action="/message" method="POST">
+        <input name="name" placeholder="Write something">
+        <button type="submit">Submit</button>
+            </form>
+        </body>`
+        );
     }
     // if request sended
-    if (url === '/message' && method === 'POST') {
+    else if (url === '/message' && method === 'POST') {
         const body = []; //[43 54 23 46 42 12]
 
         req.on('data', (chunk) => {
             body.push(chunk);
-            // console.log(chunk);
         });
 
         req.on('error', (error) => {
@@ -43,11 +52,11 @@ const requestHandler = (req, res) => {
                 if (err) {
                     console.error(err);
                 }
-                res.statusCode = 302;
-                res.setHeader('Location', '/');
-                return res.end();
+                sendResponse(res, 'Location', '/', '', 302);
             });
         });
+    } else {
+        sendResponse(res, 'Content-Type', 'text/plain', 'NOT FOUND', 400);
     }
 };
 
